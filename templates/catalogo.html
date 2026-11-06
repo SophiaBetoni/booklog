@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Buscar livros | Entre Páginas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topo">
+        <div class="container barra">
+            <a class="marca" href="{{ url_for('inicio') }}">✦ Entre Páginas</a>
+            <a class="link" href="{{ url_for('inicio') }}">Minha estante</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <p class="etiqueta">CATÁLOGO DE LIVROS</p>
+            <h1>Encontre sua <em>próxima leitura.</em></h1>
+            <p>Pesquise por título ou autor e escolha em qual categoria salvar o livro.</p>
+        </section>
+
+        <form class="busca" method="get" action="{{ url_for('catalogo.pesquisar') }}">
+            <label>
+                Buscar por
+                <select name="campo">
+                    <option value="title" {% if campo == 'title' %}selected{% endif %}>Título</option>
+                    <option value="author" {% if campo == 'author' %}selected{% endif %}>Autor(a)</option>
+                </select>
+            </label>
+            <label>
+                Título ou nome do autor
+                <input type="search" name="q" value="{{ termo }}" maxlength="150"
+                       placeholder="Ex.: Dom Casmurro" required>
+            </label>
+            <button type="submit">Buscar</button>
+        </form>
+
+        {% for tipo, mensagem in get_flashed_messages(with_categories=true) %}
+            <p class="aviso {{ tipo }}" role="status">{{ mensagem }}</p>
+        {% endfor %}
+
+        {% if erro %}
+            <p class="aviso erro" role="alert">{{ erro }}</p>
+        {% elif termo %}
+            <section class="secao">
+                <h2>Resultados para “{{ termo }}”</h2>
+
+                <div class="grade">
+                    {% for livro in livros %}
+                        <article class="cartao">
+                            <div class="livro-topo">
+                                {% if livro.capa_id %}
+                                    <img class="capa-real"
+                                         src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
+                                         alt="Capa de {{ livro.titulo }}" loading="lazy"
+                                         onerror="this.hidden = true; this.nextElementSibling.hidden = false">
+                                    <span class="sem-capa" hidden>Sem capa</span>
+                                {% else %}
+                                    <span class="sem-capa">Sem capa</span>
+                                {% endif %}
+                                <div>
+                                    <h3>{{ livro.titulo }}</h3>
+                                    <p class="suave">{{ livro.autor }}</p>
+                                    {% if livro.ano %}<p class="suave">{{ livro.ano }}</p>{% endif %}
+                                </div>
+                            </div>
+
+                            <form class="form-catalogo" method="post"
+                                  action="{{ url_for('catalogo.adicionar') }}">
+                                <input type="hidden" name="livro" value="{{ livro.selecao }}">
+                                <label>
+                                    Status de leitura
+                                    <select name="status">
+                                        {% for status in categorias %}
+                                            <option value="{{ status }}">{{ status }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                                <button type="submit">Salvar na estante</button>
+                            </form>
+                        </article>
+                    {% else %}
+                        <p class="suave">Nenhum livro encontrado. Tente um título mais curto ou busque pelo autor.</p>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        <footer>Catálogo e capas fornecidos pela Open Library.</footer>
+    </main>
+</body>
+</html>

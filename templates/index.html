@@ -1,0 +1,301 @@
+{% macro navegacao(classe) %}
+    <nav class="{{ classe }}" aria-label="Navegação principal">
+        {% for chave, icone, nome in [
+            ('estante', '▤', 'Estante'),
+            ('resenhas', '☆', 'Resenhas'),
+            ('listas', '☷', 'Listas')
+        ] %}
+            <a href="{{ url_for('inicio', aba=chave) }}"
+               {% if aba == chave %}aria-current="page"{% endif %}>
+                <span aria-hidden="true">{{ icone }}</span>
+                {{ nome }}
+            </a>
+        {% endfor %}
+    </nav>
+{% endmacro %}
+
+{% macro capa(livro) %}
+    {% if livro.capa_id %}
+        <img class="capa-real"
+             src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
+             alt="Capa de {{ livro.titulo }}"
+             loading="lazy"
+             onerror="this.hidden = true; this.nextElementSibling.hidden = false">
+        <div class="capa" aria-hidden="true" hidden>{{ livro.titulo[:1] | upper }}</div>
+    {% else %}
+        <div class="capa" aria-hidden="true">{{ livro.titulo[:1] | upper }}</div>
+    {% endif %}
+{% endmacro %}
+
+{% macro campos_livro(livro) %}
+    <input type="hidden" name="aba" value="{{ aba }}">
+
+    <div class="campos-duplos">
+        <label>
+            Status
+            <select name="status">
+                {% for status in categorias %}
+                    <option value="{{ status }}"
+                            {% if livro.status == status %}selected{% endif %}>
+                        {{ status }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Nota
+            <select name="nota">
+                <option value="0" {% if livro.nota == 0 %}selected{% endif %}>
+                    Sem nota
+                </option>
+                {% for nota in range(1, 6) %}
+                    <option value="{{ nota }}"
+                            {% if livro.nota == nota %}selected{% endif %}>
+                        {{ nota }} de 5
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+
+    <label>
+        Resenha
+        <textarea name="resenha" rows="4" maxlength="4000"
+                  placeholder="O que você achou da leitura?">{{ livro.resenha }}</textarea>
+    </label>
+
+    <label class="checkbox">
+        <input type="checkbox" name="favorito" {% if livro.favorito %}checked{% endif %}>
+        Incluir no meu Top 3
+    </label>
+{% endmacro %}
+
+{% macro cartao(livro, mostrar_resenha=false) %}
+    <article class="cartao">
+        <div class="livro-topo">
+            {{ capa(livro) }}
+            <div>
+                <p class="etiqueta">{{ livro.status }}</p>
+                <h3>{{ livro.titulo }}</h3>
+                <p class="suave">{{ livro.autor }}</p>
+            </div>
+        </div>
+
+        {% if livro.nota %}
+            <p class="estrelas">
+                <span aria-hidden="true">{{ '★' * livro.nota }}{{ '☆' * (5 - livro.nota) }}</span>
+                <span>{{ livro.nota }}/5</span>
+            </p>
+        {% endif %}
+
+        {% if mostrar_resenha and livro.resenha %}
+            <p class="resenha">{{ livro.resenha }}</p>
+        {% endif %}
+
+        <details>
+            <summary>Editar leitura</summary>
+
+            <form method="post" action="{{ url_for('salvar_livro', livro_id=livro.id) }}">
+                {{ campos_livro(livro) }}
+                <button type="submit">Salvar alterações</button>
+            </form>
+
+            <form method="post" action="{{ url_for('excluir_livro', livro_id=livro.id) }}"
+                  onsubmit="return confirm('Remover este livro da estante e das listas?')">
+                <input type="hidden" name="aba" value="{{ aba }}">
+                <button class="perigo" type="submit">Remover da estante</button>
+            </form>
+        </details>
+    </article>
+{% endmacro %}
+
+{% macro campos_lista(lista=none) %}
+    <label>
+        Nome da lista
+        <input name="nome" maxlength="100" placeholder="Ex.: Leituras de férias"
+               value="{{ lista.nome if lista else '' }}" required>
+    </label>
+
+    {% if livros %}
+        <fieldset>
+            <legend>Livros da lista</legend>
+
+            {% for livro in livros %}
+                <label class="checkbox">
+                    <input type="checkbox" name="livros" value="{{ livro.id }}"
+                           {% if lista and livro.id in membros[lista.id] %}checked{% endif %}>
+                    {{ livro.titulo }} · {{ livro.autor }}
+                </label>
+            {% endfor %}
+        </fieldset>
+    {% endif %}
+{% endmacro %}
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#18141d">
+    <title>Entre Páginas | Diário de leitura</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topo">
+        <div class="container barra">
+            <a class="marca" href="{{ url_for('inicio') }}">✦ Entre Páginas</a>
+            {{ navegacao('nav-desktop') }}
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <p class="etiqueta">MEU DIÁRIO DE LEITURA</p>
+            <h1>Entre <em>Páginas.</em></h1>
+            <p>Guarde o que leu e encontre sua próxima leitura.</p>
+        </section>
+
+        {% for tipo, mensagem in get_flashed_messages(with_categories=true) %}
+            <p class="aviso {{ tipo }}" role="status">{{ mensagem }}</p>
+        {% endfor %}
+
+        {% if aba == 'estante' %}
+            <section class="painel">
+                <h2>Encontre um livro</h2>
+                <p class="suave">
+                    Busque pelo título ou autor e escolha onde salvar o livro na sua estante.
+                </p>
+                <a class="botao-link" href="{{ url_for('catalogo.pesquisar') }}">
+                    Buscar no catálogo
+                </a>
+            </section>
+
+            <section class="secao">
+                <h2>Meu Top 3</h2>
+
+                {% if favoritos %}
+                    <div class="grade">
+                        {% for livro in favoritos %}
+                            <article class="painel favorito">
+                                <div class="livro-topo">
+                                    {{ capa(livro) }}
+                                    <div>
+                                        <h3>{{ livro.titulo }}</h3>
+                                        <p class="suave">{{ livro.autor }}</p>
+                                    </div>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="suave">
+                        Marque até três favoritos em <strong>Editar leitura</strong>.
+                    </p>
+                {% endif %}
+            </section>
+
+            <section class="secao">
+                <h2>Minha estante</h2>
+
+                {% if livros %}
+                    <form class="busca" method="get" action="{{ url_for('inicio') }}">
+                        <label>
+                            Filtrar meus livros por título ou autor
+                            <input type="search" name="q" value="{{ busca }}" maxlength="150">
+                        </label>
+                        <button type="submit">Filtrar</button>
+                        {% if busca %}
+                            <a class="link" href="{{ url_for('inicio') }}">Limpar</a>
+                        {% endif %}
+                    </form>
+                {% endif %}
+
+                <div class="grade">
+                    {% for status in categorias %}
+                        <section class="painel coluna">
+                            <h3>{{ status }}</h3>
+
+                            {% for livro in livros_filtrados if livro.status == status %}
+                                {{ cartao(livro) }}
+                            {% else %}
+                                <p class="suave">Nenhum livro nesta categoria.</p>
+                            {% endfor %}
+                        </section>
+                    {% endfor %}
+                </div>
+            </section>
+
+        {% elif aba == 'resenhas' %}
+            <section class="secao">
+                <h2>Minhas resenhas</h2>
+
+                <div class="grade">
+                    {% for livro in resenhas %}
+                        {{ cartao(livro, true) }}
+                    {% else %}
+                        <p class="suave">
+                            Abra <strong>Editar leitura</strong> em um livro da estante
+                            para dar uma nota ou escrever uma resenha.
+                        </p>
+                    {% endfor %}
+                </div>
+            </section>
+
+        {% else %}
+            <details class="painel">
+                <summary>+ Nova lista</summary>
+
+                <form method="post" action="{{ url_for('salvar_lista') }}">
+                    {{ campos_lista() }}
+                    <button type="submit">Criar lista</button>
+                </form>
+            </details>
+
+            <section class="secao">
+                <h2>Minhas listas</h2>
+
+                <div class="grade">
+                    {% for lista in listas %}
+                        <article class="painel">
+                            <h3>{{ lista.nome }}</h3>
+
+                            {% if membros[lista.id] %}
+                                <ul>
+                                    {% for livro in livros if livro.id in membros[lista.id] %}
+                                        <li>{{ livro.titulo }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="suave">Esta lista está vazia.</p>
+                            {% endif %}
+
+                            <details>
+                                <summary>Editar lista</summary>
+
+                                <form method="post"
+                                      action="{{ url_for('salvar_lista', lista_id=lista.id) }}">
+                                    {{ campos_lista(lista) }}
+                                    <button type="submit">Salvar lista</button>
+                                </form>
+
+                                <form method="post"
+                                      action="{{ url_for('excluir_lista', lista_id=lista.id) }}"
+                                      onsubmit="return confirm('Excluir esta lista?')">
+                                    <button class="perigo" type="submit">Excluir lista</button>
+                                </form>
+                            </details>
+                        </article>
+                    {% else %}
+                        <p class="suave">Crie uma lista para agrupar suas leituras.</p>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        <footer>✦ Entre Páginas · Diário de leitura</footer>
+    </main>
+
+    {{ navegacao('nav-mobile') }}
+</body>
+</html>
