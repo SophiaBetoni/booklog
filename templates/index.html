@@ -15,16 +15,22 @@
 {% endmacro %}
 
 {% macro capa(livro) %}
-    {% if livro.capa_id %}
-        <img class="capa-real"
-             src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
-             alt="Capa de {{ livro.titulo }}"
-             loading="lazy"
-             onerror="this.hidden = true; this.nextElementSibling.hidden = false">
-        <div class="capa" aria-hidden="true" hidden>{{ livro.titulo[:1] | upper }}</div>
-    {% else %}
-        <div class="capa" aria-hidden="true">{{ livro.titulo[:1] | upper }}</div>
-    {% endif %}
+    <div class="capa-livro">
+        {% if livro.capa_id %}
+            <img
+                src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
+                alt="Capa de {{ livro.titulo }}"
+                loading="lazy"
+                width="72"
+                height="108"
+                onerror="this.hidden = true; this.nextElementSibling.hidden = false"
+            >
+        {% endif %}
+
+        <span class="capa-letra" aria-hidden="true" {% if livro.capa_id %}hidden{% endif %}>
+            {{ livro.titulo[:1] | upper }}
+        </span>
+    </div>
 {% endmacro %}
 
 {% macro campos_livro(livro) %}
@@ -138,22 +144,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#18141d">
-    <title>Entre Páginas | Diário de leitura</title>
+    <title>Booklog | Diário de leitura</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header class="topo">
         <div class="container barra">
-            <a class="marca" href="{{ url_for('inicio') }}">✦ Entre Páginas</a>
+            <a class="marca" href="{{ url_for('inicio') }}">✦ Booklog</a>
             {{ navegacao('nav-desktop') }}
         </div>
     </header>
 
     <main class="container">
         <section class="hero">
-            <p class="etiqueta">MEU DIÁRIO DE LEITURA</p>
-            <h1>Entre <em>Páginas.</em></h1>
-            <p>Guarde o que leu e encontre sua próxima leitura.</p>
+            <p class="etiqueta">O seu diário de leituras</p>
+            <h1>Booklog</h1>
+            <p>Organize suas leituras do seu jeito</p>
         </section>
 
         {% for tipo, mensagem in get_flashed_messages(with_categories=true) %}
@@ -293,7 +299,7 @@
             </section>
         {% endif %}
 
-        <footer>✦ Entre Páginas · Diário de leitura</footer>
+        <footer>✦ Booklog · Diário de leitura</footer>
     </main>
 
     {{ navegacao('nav-mobile') }}
