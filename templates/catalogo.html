@@ -3,37 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Buscar livros | Entre Páginas</title>
+    <title>Catálogo | Booklog</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header class="topo">
         <div class="container barra">
-            <a class="marca" href="{{ url_for('inicio') }}">✦ Entre Páginas</a>
+            <a class="marca" href="{{ url_for('inicio') }}">✦ Booklog</a>
             <a class="link" href="{{ url_for('inicio') }}">Minha estante</a>
         </div>
     </header>
 
     <main class="container">
         <section class="hero">
-            <p class="etiqueta">CATÁLOGO DE LIVROS</p>
+            <p class="etiqueta">CATÁLOGO DO BOOKLOG</p>
             <h1>Encontre sua <em>próxima leitura.</em></h1>
-            <p>Pesquise por título ou autor e escolha em qual categoria salvar o livro.</p>
+            <p>Pesquise por título ou autor e salve o livro na sua estante.</p>
         </section>
 
-        <form class="busca" method="get" action="{{ url_for('catalogo.pesquisar') }}">
-            <label>
-                Buscar por
-                <select name="campo">
-                    <option value="title" {% if campo == 'title' %}selected{% endif %}>Título</option>
-                    <option value="author" {% if campo == 'author' %}selected{% endif %}>Autor(a)</option>
-                </select>
+        <form class="painel" method="get" action="{{ url_for('catalogo.pesquisar') }}">
+            <div class="campos-duplos">
+                <label>
+                    Buscar por
+                    <select name="campo">
+                        <option value="title" {% if campo == 'title' %}selected{% endif %}>
+                            Título
+                        </option>
+                        <option value="author" {% if campo == 'author' %}selected{% endif %}>
+                            Autor(a)
+                        </option>
+                    </select>
+                </label>
+
+                <label>
+                    Título ou nome do autor
+                    <input type="search" name="q" value="{{ termo }}" maxlength="150"
+                           placeholder="Ex.: Clockwork Angel" required>
+                </label>
+            </div>
+
+            <label class="checkbox">
+                <input type="checkbox" name="somente_capa" value="1"
+                       {% if somente_capa %}checked{% endif %}>
+                Somente com capa
             </label>
-            <label>
-                Título ou nome do autor
-                <input type="search" name="q" value="{{ termo }}" maxlength="150"
-                       placeholder="Ex.: Dom Casmurro" required>
-            </label>
+
             <button type="submit">Buscar</button>
         </form>
 
@@ -51,25 +65,32 @@
                     {% for livro in livros %}
                         <article class="cartao">
                             <div class="livro-topo">
-                                {% if livro.capa_id %}
-                                    <img class="capa-real"
-                                         src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
-                                         alt="Capa de {{ livro.titulo }}" loading="lazy"
-                                         onerror="this.hidden = true; this.nextElementSibling.hidden = false">
-                                    <span class="sem-capa" hidden>Sem capa</span>
-                                {% else %}
-                                    <span class="sem-capa">Sem capa</span>
-                                {% endif %}
+                                <div class="capa-livro">
+                                    {% if livro.capa_url %}
+                                        <img src="{{ livro.capa_url }}"
+                                             alt="Capa de {{ livro.titulo }}"
+                                             width="64" height="96" loading="lazy"
+                                             onerror="this.hidden = true; this.nextElementSibling.hidden = false">
+                                    {% endif %}
+                                    <span class="capa-letra" aria-hidden="true"
+                                          {% if livro.capa_url %}hidden{% endif %}>
+                                        {{ livro.titulo[:1] | upper }}
+                                    </span>
+                                </div>
+
                                 <div>
                                     <h3>{{ livro.titulo }}</h3>
                                     <p class="suave">{{ livro.autor }}</p>
-                                    {% if livro.ano %}<p class="suave">{{ livro.ano }}</p>{% endif %}
+                                    {% if livro.ano %}
+                                        <p class="suave">{{ livro.ano }}</p>
+                                    {% endif %}
                                 </div>
                             </div>
 
                             <form class="form-catalogo" method="post"
                                   action="{{ url_for('catalogo.adicionar') }}">
                                 <input type="hidden" name="livro" value="{{ livro.selecao }}">
+
                                 <label>
                                     Status de leitura
                                     <select name="status">
@@ -78,17 +99,25 @@
                                         {% endfor %}
                                     </select>
                                 </label>
+
                                 <button type="submit">Salvar na estante</button>
                             </form>
                         </article>
                     {% else %}
-                        <p class="suave">Nenhum livro encontrado. Tente um título mais curto ou busque pelo autor.</p>
+                        <p class="suave">
+                            {% if somente_capa %}
+                                Nenhum resultado com capa nesta busca.
+                                Desmarque “Somente com capa” e tente de novo.
+                            {% else %}
+                                Nenhum livro encontrado. Tente outro título ou busque pelo autor.
+                            {% endif %}
+                        </p>
                     {% endfor %}
                 </div>
             </section>
         {% endif %}
 
-        <footer>Catálogo e capas fornecidos pela Open Library.</footer>
+        <footer>Dados do catálogo fornecidos pelo Google Books.</footer>
     </main>
 </body>
 </html>

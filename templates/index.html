@@ -16,21 +16,24 @@
 
 {% macro capa(livro) %}
     <div class="capa-livro">
-        {% if livro.capa_id %}
-            <img
-                src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
-                alt="Capa de {{ livro.titulo }}"
-                loading="lazy"
-                width="72"
-                height="108"
-                onerror="this.hidden = true; this.nextElementSibling.hidden = false"
-            >
+    {% set url_capa = livro.capa_url %}
+    {% if not url_capa and livro.capa_id %}
+        {% set url_capa = 'https://covers.openlibrary.org/b/id/' ~ livro.capa_id ~ '-M.jpg?default=false' %}
+    {% endif %}
+
+    <div class="capa-livro">
+        {% if url_capa %}
+            <img src="{{ url_capa }}"
+                 alt="Capa de {{ livro.titulo }}"
+                 width="64" height="96" loading="lazy"
+                 onerror="this.hidden = true; this.nextElementSibling.hidden = false">
         {% endif %}
 
-        <span class="capa-letra" aria-hidden="true" {% if livro.capa_id %}hidden{% endif %}>
+        <span class="capa-letra" aria-hidden="true" {% if url_capa %}hidden{% endif %}>
             {{ livro.titulo[:1] | upper }}
         </span>
     </div>
+
 {% endmacro %}
 
 {% macro campos_livro(livro) %}

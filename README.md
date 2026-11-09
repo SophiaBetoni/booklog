@@ -1,37 +1,44 @@
-# Entre Páginas
+# 📚 Booklog
 
-Diário de leitura responsivo feito com Python, Flask, SQLite, HTML e CSS.
+O **Booklog** é um diário de leitura para organizar os livros que você quer ler, está lendo ou já terminou. Pesquise um título ou autor no catálogo, escolha um livro e adicione-o à sua estante.
 
-## Funcionalidades
+## O que você pode fazer
 
-- Cadastro, edição e exclusão de livros.
-- Estante dividida em Quero ler, Lendo e Lido.
-- Busca por título ou autor.
-- Notas de 1 a 5 e resenhas.
-- Top 3 de livros favoritos.
-- Listas personalizadas.
-- Menu inferior em telas pequenas.
+| Recurso | Como funciona |
+| --- | --- |
+| 🔎 Catálogo | Busque por título ou autor na Open Library e veja a capa quando estiver disponível. |
+| 📖 Estante | Organize seus livros em **Quero ler**, **Lendo** e **Lido**. |
+| ⭐ Avaliações | Dê notas de 1 a 5 estrelas e escreva resenhas. |
+| 📋 Listas | Crie coleções personalizadas com os livros da sua estante. |
+| 💜 Top 3 | Destaque até três livros favoritos. |
 
-## Como rodar no Windows
+A interface tem tema escuro e se adapta a telas de computador e celular.
 
-Abra a pasta do projeto no VS Code e execute no PowerShell:
+## Como executar no Windows
+
+Abra a pasta do projeto no VS Code. No terminal PowerShell, crie o ambiente virtual e instale as dependências:
 
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe app.py
 ```
 
-Abra [http://127.0.0.1:5000](http://127.0.0.1:5000) no navegador.
-O SQLite cria o arquivo `estante.db` na primeira execução.
+Depois, inicie o servidor:
 
-## Como demonstrar
+```powershell
+.\.venv\Scripts\python.exe -m flask --app app run --port 5001
+```
 
-1. Adicione um livro e escolha o status Lido.
-2. Dê uma nota, escreva uma resenha e marque o livro como favorito.
-3. Abra Resenhas para conferir a avaliação.
-4. Crie uma lista e selecione o livro.
-5. Reduza a largura da janela para conferir o menu inferior.
+Com o terminal aberto, acesse **[http://127.0.0.1:5001](http://127.0.0.1:5001)** no navegador.
 
-Este MVP usa uma única estante local. A publicação do código no GitHub
-permite que outras pessoas baixem e executem o projeto.
+## Como testar
+
+1. Abra **Buscar no catálogo** e pesquise o livro que deseja.
+2. Escolha um resultado, selecione **Lendo** e clique em **Salvar na estante**.
+3. Na estante, abra **Editar leitura** para mudar o status, dar uma nota ou escrever uma resenha.
+
+O catálogo e as capas precisam de internet. Os livros salvos, as resenhas e as listas ficam no banco SQLite local `estante.db`, criado na primeira execução.
+
+## Tecnologias
+
+**Python e Flask** no servidor, **SQLite** para armazenar os dados, **HTML com Jinja e CSS** na interface e **Open Library** para a busca e as capas.
