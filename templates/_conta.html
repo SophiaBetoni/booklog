@@ -1,0 +1,15 @@
+<div class="conta">
+    {% if usuario_atual %}
+        <a class="link" href="{{ url_for('usuarios.perfil', usuario=usuario_atual.usuario) }}">
+            <span class="avatar" aria-hidden="true">{{ usuario_atual.nome[:1] | upper }}</span>
+            @{{ usuario_atual.usuario }}
+        </a>
+        <form method="post" action="{{ url_for('usuarios.logout') }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <button class="perigo pequeno" type="submit">Sair</button>
+        </form>
+    {% else %}
+        <a class="link" href="{{ url_for('usuarios.login') }}">Entrar</a>
+        <a class="botao-link pequeno" href="{{ url_for('usuarios.cadastro') }}">Criar conta</a>
+    {% endif %}
+</div>

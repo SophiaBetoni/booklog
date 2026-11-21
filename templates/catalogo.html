@@ -11,6 +11,7 @@
         <div class="container barra">
             <a class="marca" href="{{ url_for('inicio') }}">✦ Entre Páginas</a>
             <a class="link" href="{{ url_for('inicio') }}">Minha estante</a>
+            {% include '_conta.html' %}
         </div>
     </header>
 
@@ -69,6 +70,7 @@
 
                             <form class="form-catalogo" method="post"
                                   action="{{ url_for('catalogo.adicionar') }}">
+                                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                                 <input type="hidden" name="livro" value="{{ livro.selecao }}">
                                 <label>
                                     Status de leitura

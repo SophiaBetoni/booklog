@@ -103,12 +103,14 @@
             <summary>Editar leitura</summary>
 
             <form method="post" action="{{ url_for('salvar_livro', livro_id=livro.id) }}">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                 {{ campos_livro(livro) }}
                 <button type="submit">Salvar alterações</button>
             </form>
 
             <form method="post" action="{{ url_for('excluir_livro', livro_id=livro.id) }}"
                   onsubmit="return confirm('Remover este livro da estante e das listas?')">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                 <input type="hidden" name="aba" value="{{ aba }}">
                 <button class="perigo" type="submit">Remover da estante</button>
             </form>
@@ -152,6 +154,7 @@
         <div class="container barra">
             <a class="marca" href="{{ url_for('inicio') }}">✦ Booklog</a>
             {{ navegacao('nav-desktop') }}
+            {% include '_conta.html' %}
         </div>
     </header>
 
@@ -253,6 +256,7 @@
                 <summary>+ Nova lista</summary>
 
                 <form method="post" action="{{ url_for('salvar_lista') }}">
+                    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                     {{ campos_lista() }}
                     <button type="submit">Criar lista</button>
                 </form>
@@ -281,6 +285,7 @@
 
                                 <form method="post"
                                       action="{{ url_for('salvar_lista', lista_id=lista.id) }}">
+                                    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                                     {{ campos_lista(lista) }}
                                     <button type="submit">Salvar lista</button>
                                 </form>
@@ -288,6 +293,7 @@
                                 <form method="post"
                                       action="{{ url_for('excluir_lista', lista_id=lista.id) }}"
                                       onsubmit="return confirm('Excluir esta lista?')">
+                                    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                                     <button class="perigo" type="submit">Excluir lista</button>
                                 </form>
                             </details>

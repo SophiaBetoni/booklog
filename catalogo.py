@@ -3,7 +3,7 @@ import re
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, g, redirect, render_template, request, url_for
 from itsdangerous import BadData, URLSafeTimedSerializer
 
 CATEGORIAS = ("Quero ler", "Lendo", "Lido")
@@ -20,10 +20,6 @@ def atualizar_banco(conexao):
 
         if "capa_id" not in colunas:
             conexao.execute("ALTER TABLE livros ADD COLUMN capa_id INTEGER")
-
-        conexao.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS livros_catalogo_id ON livros (catalogo_id)"
-        )
 
 
 def assinatura():
@@ -120,13 +116,13 @@ def criar_catalogo(banco):
         with conexao:
             conexao.execute(
                 """
-                INSERT INTO livros (catalogo_id, titulo, autor, capa_id, status)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT (catalogo_id) DO UPDATE SET
+                INSERT INTO livros (usuario_id, catalogo_id, titulo, autor, capa_id, status)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT (usuario_id, catalogo_id) DO UPDATE SET
                     status = excluded.status,
                     capa_id = COALESCE(excluded.capa_id, livros.capa_id)
                 """,
-                (dados["catalogo_id"], dados["titulo"], dados["autor"], dados["capa_id"], status),
+                (g.usuario["id"], dados["catalogo_id"], dados["titulo"], dados["autor"], dados["capa_id"], status),
             )
 
         flash(f"Livro salvo em «{status}».", "sucesso")
