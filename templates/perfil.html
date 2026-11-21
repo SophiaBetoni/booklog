@@ -2,13 +2,18 @@
 {% block titulo %}{{ dono.nome }} (@{{ dono.usuario }}){% endblock %}
 
 {% macro capa(livro) %}
+    {% if livro.capa_url %}
+        {% set imagem = livro.capa_url %}
+    {% elif livro.capa_id %}
+        {% set imagem = "https://covers.openlibrary.org/b/id/" ~ livro.capa_id ~ "-M.jpg?default=false" %}
+    {% endif %}
     <div class="capa-livro">
-        {% if livro.capa_id %}
-            <img src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
-                 alt="Capa de {{ livro.titulo }}" loading="lazy" width="72" height="108"
+        {% if imagem %}
+            <img src="{{ imagem }}" alt="Capa de {{ livro.titulo }}" loading="lazy"
+                 width="72" height="108" referrerpolicy="no-referrer"
                  onerror="this.hidden = true; this.nextElementSibling.hidden = false">
         {% endif %}
-        <span class="capa-letra" aria-hidden="true" {% if livro.capa_id %}hidden{% endif %}>
+        <span class="capa-letra" aria-hidden="true" {% if imagem %}hidden{% endif %}>
             {{ livro.titulo[:1] | upper }}
         </span>
     </div>
