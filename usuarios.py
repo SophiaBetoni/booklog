@@ -27,6 +27,8 @@ ROTAS_PUBLICAS = {
     "usuarios.login",
     "usuarios.cadastro",
     "usuarios.perfil",
+    "google_login.iniciar",
+    "google_login.retorno",
     "static",
 }
 
