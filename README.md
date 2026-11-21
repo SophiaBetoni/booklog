@@ -1,42 +1,122 @@
-# Entre Páginas
+# ✦ Booklog 📚
 
-Diário de leitura responsivo feito com Python, Flask, SQLite, HTML e CSS.
+**Um lugar para todas as suas histórias. ♡**
 
-## Funcionalidades
+O **Booklog** é uma aplicação web desenvolvida para quem ama livros e deseja organizar suas leituras em um espaço pessoal, intuitivo e acolhedor.
 
-- Contas de usuário com cadastro, login e logout (senhas guardadas com hash).
-- Perfil público em `/u/<usuario>` com bio, números da estante, Top 3 e resenhas.
-- Cada pessoa tem a própria estante, resenhas e listas.
-- Cadastro, edição e exclusão de livros.
-- Estante dividida em Quero ler, Lendo e Lido.
-- Busca por título ou autor.
-- Notas de 1 a 5 e resenhas.
-- Top 3 de livros favoritos.
-- Listas personalizadas.
-- Menu inferior em telas pequenas.
+Inspirado na ideia de um diário literário, o Booklog permite acompanhar suas leituras, registrar avaliações, organizar listas e guardar suas histórias favoritas.
 
-## Como rodar no Windows
+> Cada livro, uma história. Cada leitura, uma memória.
 
-Abra a pasta do projeto no VS Code e execute no PowerShell:
+---
 
-```powershell
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe app.py
+## 🌷 Funcionalidades
+
+- 📖 **Minha estante:** organize seus livros em *Quero ler*, *Lendo* e *Lido*.
+- ⭐ **Avaliações:** atribua notas de 0 a 5 estrelas e escreva resenhas.
+- 💗 **Top 3 favoritos:** escolha seus três livros preferidos.
+- 🔎 **Busca de livros:** pesquise por título ou autor.
+- 🎀 **Listas personalizadas:** crie e organize suas próprias coleções.
+- 👤 **Perfis:** crie uma conta, faça login e personalize seu perfil.
+- ✨ **Página inicial:** descubra citações literárias selecionadas, exibidas aleatoriamente.
+- 📱 **Design responsivo:** navegue pelo computador ou celular.
+
+## 🛠️ Tecnologias utilizadas
+
+| Tecnologia | Utilização |
+|---|---|
+| Python | Backend |
+| Flask | Aplicação web e rotas |
+| SQLite | Banco de dados |
+| HTML5 | Estrutura das páginas |
+| CSS3 | Estilização e responsividade |
+| Jinja2 | Templates dinâmicos |
+| Google Books API | Pesquisa de livros e capas |
+| Open Library API | Fonte alternativa para o catálogo |
+| Git e GitHub | Versionamento |
+
+## 💻 Como executar o projeto
+
+**1. Clone o repositório**
+
+```bash
+git clone URL_DO_SEU_REPOSITORIO
+cd Book_log
 ```
 
-Abra [http://127.0.0.1:5001](http://127.0.0.1:5001) no navegador.
-O SQLite cria o arquivo `estante.db` na primeira execução.
+**2. Crie um ambiente virtual**
 
-## Como demonstrar
+```bash
+python -m venv .venv
+```
 
-1. Crie uma conta em Criar conta.
-2. Adicione um livro e escolha o status Lido.
-3. Dê uma nota, escreva uma resenha e marque o livro como favorito.
-4. Abra Resenhas para conferir a avaliação.
-5. Crie uma lista e selecione o livro.
-6. Clique no seu @usuário no topo para ver seu perfil público.
-7. Reduza a largura da janela para conferir o menu inferior.
+**3. Ative o ambiente virtual**
 
-Ao criar a primeira conta, ela recebe os livros e listas que já estavam no banco.
-A publicação do código no GitHub permite que outras pessoas baixem e executem o projeto.
+No Windows (PowerShell):
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+**4. Instale as dependências**
+
+```bash
+pip install -r requirements.txt
+```
+
+**5. Configure a Google Books API**
+
+Crie um arquivo `.env` na pasta principal:
+
+```dotenv
+GOOGLE_BOOKS_KEY=SUA_CHAVE_AQUI
+```
+
+A chave deve ser obtida no Google Cloud Console. Não compartilhe esse arquivo nem publique sua chave no GitHub.
+
+**6. Execute o Booklog**
+
+```bash
+python app.py
+```
+
+**7. Acesse no navegador**
+
+```text
+http://127.0.0.1:5001
+```
+
+## 📁 Estrutura do projeto
+
+```text
+Book_log/
+├── app.py
+├── catalogo.py
+├── usuarios.py
+├── frases.py
+├── requirements.txt
+├── templates/
+│   ├── inicio.html
+│   ├── index.html
+│   ├── catalogo.html
+│   ├── cadastro.html
+│   ├── login.html
+│   └── ...
+├── static/
+│   ├── inicio.css
+│   └── style.css
+└── README.md
+```
+
+
+## 💌 Sobre o projeto
+
+O Booklog é um projeto pessoal desenvolvido para unir duas paixões: **tecnologia e literatura**.
+
+A proposta é transformar o acompanhamento de leituras em uma experiência agradável, personalizada e visualmente encantadora.
+
+---
+
+**Feito com Python, livros e muito carinho. ♡**
+
+*✦ Booklog — porque algumas histórias merecem ficar com a gente para sempre.*
