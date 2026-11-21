@@ -1,5 +1,8 @@
 import json
+import os
 import re
+from pathlib import Path
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -21,12 +24,100 @@ def atualizar_banco(conexao):
         if "capa_id" not in colunas:
             conexao.execute("ALTER TABLE livros ADD COLUMN capa_id INTEGER")
 
+        if "capa_url" not in colunas:
+            conexao.execute("ALTER TABLE livros ADD COLUMN capa_url TEXT")
+
 
 def assinatura():
     return URLSafeTimedSerializer(current_app.secret_key, salt="catalogo-de-livros")
 
 
-def buscar_livros(termo, campo):
+def chave_google():
+    """Lê a chave da variável de ambiente ou do arquivo .env (que fica fora do Git)."""
+    chave = os.environ.get("GOOGLE_BOOKS_KEY")
+    if chave:
+        return chave.strip()
+
+    arquivo = Path(__file__).resolve().parent / ".env"
+    if arquivo.exists():
+        # "utf-8-sig" ignora o caractere invisível que o Bloco de Notas às vezes coloca no início.
+        for linha in arquivo.read_text(encoding="utf-8-sig").splitlines():
+            nome, _, valor = linha.partition("=")
+            if nome.strip() == "GOOGLE_BOOKS_KEY":
+                return valor.strip().strip("\"'")
+    return None
+
+
+def baixar_json(endereco):
+    consulta = Request(endereco, headers={"Accept": "application/json"})
+    with urlopen(consulta, timeout=8) as resposta:
+        return json.load(resposta)
+
+
+def preparar(dados, ano):
+    return {
+        **dados,
+        "ano": ano,
+        "selecao": assinatura().dumps(dados),
+    }
+
+
+def buscar_google(termo, campo):
+    filtro = "intitle" if campo == "title" else "inauthor"
+    parametros = {
+        "q": f"{filtro}:{termo}",
+        "printType": "books",
+        "maxResults": 20,
+        "fields": "items(id,volumeInfo(title,subtitle,authors,publishedDate,imageLinks))",
+    }
+    chave = chave_google()
+    if chave:
+        parametros["key"] = chave
+    else:
+        current_app.logger.warning(
+            "Nenhuma chave do Google encontrada. Confira o arquivo .env ao lado do app.py."
+        )
+
+    volumes = baixar_json(
+        f"https://www.googleapis.com/books/v1/volumes?{urlencode(parametros)}"
+    ).get("items", [])
+
+    livros = []
+    for item in volumes:
+        volume_id = item.get("id", "")
+        info = item.get("volumeInfo", {})
+        titulo = info.get("title", "").strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{4,30}", volume_id) or not titulo:
+            continue
+
+        subtitulo = info.get("subtitle", "").strip()
+        if subtitulo:
+            titulo = f"{titulo}: {subtitulo}"
+
+        autor = ", ".join(info.get("authors") or []) or "Autor desconhecido"
+        capa = None
+        if info.get("imageLinks"):
+            capa = (
+                f"https://books.google.com/books/content?id={volume_id}"
+                "&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+            )
+        ano = info.get("publishedDate", "")[:4]
+
+        livros.append(
+            preparar(
+                {
+                    "catalogo_id": f"gb:{volume_id}",
+                    "titulo": titulo[:150],
+                    "autor": autor[:120],
+                    "capa_url": capa,
+                },
+                ano if ano.isdigit() else None,
+            )
+        )
+    return livros
+
+
+def buscar_open_library(termo, campo):
     parametros = urlencode(
         {
             campo: termo,
@@ -34,13 +125,7 @@ def buscar_livros(termo, campo):
             "limit": 20,
         }
     )
-    consulta = Request(
-        f"https://openlibrary.org/search.json?{parametros}",
-        headers={"Accept": "application/json"},
-    )
-
-    with urlopen(consulta, timeout=8) as resposta:
-        documentos = json.load(resposta)["docs"]
+    documentos = baixar_json(f"https://openlibrary.org/search.json?{parametros}")["docs"]
 
     livros = []
     for item in documentos:
@@ -49,27 +134,41 @@ def buscar_livros(termo, campo):
         if not re.fullmatch(r"OL\d+W", chave) or not titulo:
             continue
 
-        autores = item.get("author_name") or []
-        autor = ", ".join(autores) or "Autor desconhecido"
+        autor = ", ".join(item.get("author_name") or []) or "Autor desconhecido"
         capa_id = item.get("cover_i")
-        if not isinstance(capa_id, int) or capa_id <= 0:
-            capa_id = None
+        capa = None
+        if isinstance(capa_id, int) and capa_id > 0:
+            capa = f"https://covers.openlibrary.org/b/id/{capa_id}-M.jpg?default=false"
 
-        dados = {
-            "catalogo_id": chave,
-            "titulo": titulo[:150],
-            "autor": autor[:120],
-            "capa_id": capa_id,
-        }
         livros.append(
-            {
-                **dados,
-                "ano": item.get("first_publish_year"),
-                "selecao": assinatura().dumps(dados),
-            }
+            preparar(
+                {
+                    "catalogo_id": chave,
+                    "titulo": titulo[:150],
+                    "autor": autor[:120],
+                    "capa_url": capa,
+                },
+                item.get("first_publish_year"),
+            )
         )
-
     return livros
+
+
+def buscar_livros(termo, campo):
+    """Tenta o Google Books e, se ele falhar, usa a Open Library."""
+    try:
+        livros, fonte = buscar_google(termo, campo), "Google Books"
+    except HTTPError as erro:
+        detalhe = erro.read().decode("utf-8", "replace")[:300]
+        current_app.logger.warning("Google Books respondeu %s: %s", erro.code, detalhe)
+        livros, fonte = buscar_open_library(termo, campo), "Open Library"
+    except (OSError, ValueError, KeyError) as erro:
+        current_app.logger.warning("Google Books falhou: %r", erro)
+        livros, fonte = buscar_open_library(termo, campo), "Open Library"
+
+    # Livros com capa aparecem primeiro.
+    livros.sort(key=lambda livro: livro["capa_url"] is None)
+    return livros, fonte
 
 
 def criar_catalogo(banco):
@@ -83,11 +182,13 @@ def criar_catalogo(banco):
             campo = "title"
 
         livros = []
+        fonte = None
         erro = None
         if termo:
             try:
-                livros = buscar_livros(termo, campo)
-            except (OSError, ValueError, KeyError):
+                livros, fonte = buscar_livros(termo, campo)
+            except (OSError, ValueError, KeyError) as falha:
+                current_app.logger.warning("Open Library também falhou: %r", falha)
                 erro = "O catálogo não respondeu agora. Tente buscar novamente em instantes."
 
         return render_template(
@@ -96,6 +197,7 @@ def criar_catalogo(banco):
             termo=termo,
             campo=campo,
             categorias=CATEGORIAS,
+            fonte=fonte,
             erro=erro,
         )
 
@@ -116,13 +218,20 @@ def criar_catalogo(banco):
         with conexao:
             conexao.execute(
                 """
-                INSERT INTO livros (usuario_id, catalogo_id, titulo, autor, capa_id, status)
+                INSERT INTO livros (usuario_id, catalogo_id, titulo, autor, capa_url, status)
                 VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT (usuario_id, catalogo_id) DO UPDATE SET
                     status = excluded.status,
-                    capa_id = COALESCE(excluded.capa_id, livros.capa_id)
+                    capa_url = COALESCE(excluded.capa_url, livros.capa_url)
                 """,
-                (g.usuario["id"], dados["catalogo_id"], dados["titulo"], dados["autor"], dados["capa_id"], status),
+                (
+                    g.usuario["id"],
+                    dados["catalogo_id"],
+                    dados["titulo"],
+                    dados["autor"],
+                    dados["capa_url"],
+                    status,
+                ),
             )
 
         flash(f"Livro salvo em «{status}».", "sucesso")

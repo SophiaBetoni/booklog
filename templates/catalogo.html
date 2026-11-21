@@ -47,20 +47,22 @@
         {% elif termo %}
             <section class="secao">
                 <h2>Resultados para “{{ termo }}”</h2>
+                {% if fonte %}<p class="suave">Fonte: {{ fonte }}</p>{% endif %}
 
                 <div class="grade">
                     {% for livro in livros %}
                         <article class="cartao">
                             <div class="livro-topo">
-                                {% if livro.capa_id %}
-                                    <img class="capa-real"
-                                         src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
-                                         alt="Capa de {{ livro.titulo }}" loading="lazy"
-                                         onerror="this.hidden = true; this.nextElementSibling.hidden = false">
-                                    <span class="sem-capa" hidden>Sem capa</span>
-                                {% else %}
-                                    <span class="sem-capa">Sem capa</span>
-                                {% endif %}
+                                <div class="capa-livro">
+                                    {% if livro.capa_url %}
+                                        <img src="{{ livro.capa_url }}" alt="Capa de {{ livro.titulo }}"
+                                             loading="lazy" referrerpolicy="no-referrer"
+                                             onerror="this.hidden = true; this.nextElementSibling.hidden = false">
+                                    {% endif %}
+                                    <span class="capa-letra" aria-hidden="true" {% if livro.capa_url %}hidden{% endif %}>
+                                        {{ livro.titulo[:1] | upper }}
+                                    </span>
+                                </div>
                                 <div>
                                     <h3>{{ livro.titulo }}</h3>
                                     <p class="suave">{{ livro.autor }}</p>
@@ -90,7 +92,7 @@
             </section>
         {% endif %}
 
-        <footer>Catálogo e capas fornecidos pela Open Library.</footer>
+        <footer>Catálogo e capas: Google Books e Open Library.</footer>
     </main>
 </body>
 </html>
