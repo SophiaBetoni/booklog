@@ -6,9 +6,12 @@ from pathlib import Path
 from flask import Flask, abort, flash, g, redirect, render_template, request, url_for
 
 from catalogo import atualizar_banco, criar_catalogo
+from usuarios import criar_tabela_usuarios, criar_usuarios, migrar_para_usuarios
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 256 * 1024
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 PASTA = Path(__file__).resolve().parent
 BANCO = PASTA / "estante.db"
@@ -77,6 +80,10 @@ def normalizar(texto):
     )
 
 
+def eu():
+    return g.usuario["id"]
+
+
 def voltar(aba="estante"):
     return redirect(url_for("inicio", aba=aba), code=303)
 
@@ -88,8 +95,12 @@ def inicio():
         abort(404)
 
     conexao = banco()
-    livros = conexao.execute("SELECT * FROM livros ORDER BY id DESC").fetchall()
-    listas = conexao.execute("SELECT * FROM listas ORDER BY id DESC").fetchall()
+    livros = conexao.execute(
+        "SELECT * FROM livros WHERE usuario_id = ? ORDER BY id DESC", (eu(),)
+    ).fetchall()
+    listas = conexao.execute(
+        "SELECT * FROM listas WHERE usuario_id = ? ORDER BY id DESC", (eu(),)
+    ).fetchall()
 
     busca = request.args.get("q", "").strip()[:150]
     termo = normalizar(busca)
@@ -135,16 +146,17 @@ def salvar_livro(livro_id):
         conexao.execute("BEGIN IMMEDIATE")
 
         existe = conexao.execute(
-            "SELECT 1 FROM livros WHERE id = ?",
-            (livro_id,),
+            "SELECT 1 FROM livros WHERE id = ? AND usuario_id = ?",
+            (livro_id, eu()),
         ).fetchone()
         if existe is None:
             abort(404)
 
         if favorito:
             outros_favoritos = conexao.execute(
-                "SELECT COUNT(*) FROM livros WHERE favorito = 1 AND id != ?",
-                (livro_id,),
+                "SELECT COUNT(*) FROM livros "
+                "WHERE favorito = 1 AND id != ? AND usuario_id = ?",
+                (livro_id, eu()),
             ).fetchone()[0]
 
             if outros_favoritos >= 3:
@@ -158,9 +170,9 @@ def salvar_livro(livro_id):
             """
             UPDATE livros
             SET status = ?, nota = ?, resenha = ?, favorito = ?
-            WHERE id = ?
+            WHERE id = ? AND usuario_id = ?
             """,
-            (status, nota, resenha, favorito, livro_id),
+            (status, nota, resenha, favorito, livro_id, eu()),
         )
 
     flash("Livro atualizado!", "sucesso")
@@ -171,7 +183,9 @@ def salvar_livro(livro_id):
 def excluir_livro(livro_id):
     conexao = banco()
     with conexao:
-        conexao.execute("DELETE FROM livros WHERE id = ?", (livro_id,))
+        conexao.execute(
+            "DELETE FROM livros WHERE id = ? AND usuario_id = ?", (livro_id, eu())
+        )
 
     flash("Livro removido da estante.", "sucesso")
     aba = "resenhas" if request.form.get("aba") == "resenhas" else "estante"
@@ -192,14 +206,14 @@ def salvar_lista(lista_id=None):
     with conexao:
         if lista_id is None:
             resultado = conexao.execute(
-                "INSERT INTO listas (nome) VALUES (?)",
-                (nome,),
+                "INSERT INTO listas (nome, usuario_id) VALUES (?, ?)",
+                (nome, eu()),
             )
             lista_id = resultado.lastrowid
         else:
             resultado = conexao.execute(
-                "UPDATE listas SET nome = ? WHERE id = ?",
-                (nome, lista_id),
+                "UPDATE listas SET nome = ? WHERE id = ? AND usuario_id = ?",
+                (nome, lista_id, eu()),
             )
             if resultado.rowcount == 0:
                 abort(404)
@@ -212,9 +226,9 @@ def salvar_lista(lista_id=None):
         conexao.executemany(
             """
             INSERT INTO lista_livros (lista_id, livro_id)
-            SELECT ?, id FROM livros WHERE id = ?
+            SELECT ?, id FROM livros WHERE id = ? AND usuario_id = ?
             """,
-            ((lista_id, livro_id) for livro_id in livros_selecionados),
+            ((lista_id, livro_id, eu()) for livro_id in livros_selecionados),
         )
 
     flash("Lista salva!", "sucesso")
@@ -225,17 +239,22 @@ def salvar_lista(lista_id=None):
 def excluir_lista(lista_id):
     conexao = banco()
     with conexao:
-        conexao.execute("DELETE FROM listas WHERE id = ?", (lista_id,))
+        conexao.execute(
+            "DELETE FROM listas WHERE id = ? AND usuario_id = ?", (lista_id, eu())
+        )
 
     flash("Lista excluída. Os livros continuam na estante.", "sucesso")
     return voltar("listas")
 
 
+app.register_blueprint(criar_usuarios(banco))
 app.register_blueprint(criar_catalogo(banco))
 
 with app.app_context():
+    criar_tabela_usuarios(banco())
     criar_tabelas()
     atualizar_banco(banco())
+    migrar_para_usuarios(banco())
 
 
 if __name__ == "__main__":

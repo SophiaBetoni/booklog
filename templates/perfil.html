@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ dono.nome }} (@{{ dono.usuario }}){% endblock %}
+
+{% macro capa(livro) %}
+    <div class="capa-livro">
+        {% if livro.capa_id %}
+            <img src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
+                 alt="Capa de {{ livro.titulo }}" loading="lazy" width="72" height="108"
+                 onerror="this.hidden = true; this.nextElementSibling.hidden = false">
+        {% endif %}
+        <span class="capa-letra" aria-hidden="true" {% if livro.capa_id %}hidden{% endif %}>
+            {{ livro.titulo[:1] | upper }}
+        </span>
+    </div>
+{% endmacro %}
+
+{% block conteudo %}
+    <section class="perfil-topo">
+        <span class="avatar grande" aria-hidden="true">{{ dono.nome[:1] | upper }}</span>
+        <div>
+            <h1>{{ dono.nome }}</h1>
+            <p class="suave">@{{ dono.usuario }} · leitor(a) desde {{ dono.criado_em[:4] }}</p>
+            {% if dono.bio %}<p>{{ dono.bio }}</p>{% endif %}
+            {% if proprio %}
+                <a class="botao-link pequeno" href="{{ url_for('usuarios.editar_perfil') }}">
+                    Editar perfil
+                </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="numeros">
+        {% for status, total in contagem.items() %}
+            <div class="painel">
+                <strong>{{ total }}</strong>
+                <span class="suave">{{ status }}</span>
+            </div>
+        {% endfor %}
+    </section>
+
+    <section class="secao">
+        <h2>Top 3</h2>
+        <div class="grade">
+            {% for livro in favoritos %}
+                <article class="painel favorito">
+                    <div class="livro-topo">
+                        {{ capa(livro) }}
+                        <div>
+                            <h3>{{ livro.titulo }}</h3>
+                            <p class="suave">{{ livro.autor }}</p>
+                        </div>
+                    </div>
+                </article>
+            {% else %}
+                <p class="suave">Ainda sem favoritos.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if lendo %}
+        <section class="secao">
+            <h2>Lendo agora</h2>
+            <div class="grade">
+                {% for livro in lendo %}
+                    <article class="cartao">
+                        <div class="livro-topo">
+                            {{ capa(livro) }}
+                            <div>
+                                <h3>{{ livro.titulo }}</h3>
+                                <p class="suave">{{ livro.autor }}</p>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
+    <section class="secao">
+        <h2>Resenhas recentes</h2>
+        <div class="grade">
+            {% for livro in resenhas %}
+                <article class="cartao">
+                    <div class="livro-topo">
+                        {{ capa(livro) }}
+                        <div>
+                            <h3>{{ livro.titulo }}</h3>
+                            <p class="suave">{{ livro.autor }}</p>
+                        </div>
+                    </div>
+                    {% if livro.nota %}
+                        <p class="estrelas">
+                            <span aria-hidden="true">{{ '★' * livro.nota }}{{ '☆' * (5 - livro.nota) }}</span>
+                            <span>{{ livro.nota }}/5</span>
+                        </p>
+                    {% endif %}
+                    <p class="resenha">{{ livro.resenha }}</p>
+                </article>
+            {% else %}
+                <p class="suave">Nenhuma resenha publicada ainda.</p>
+            {% endfor %}
+        </div>
+    </section>
+{% endblock %}

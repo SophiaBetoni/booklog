@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block titulo %}Editar perfil{% endblock %}
+{% block conteudo %}
+    <section class="painel formulario-conta">
+        <p class="etiqueta">@{{ usuario_atual.usuario }}</p>
+        <h1>Editar perfil</h1>
+
+        <form method="post" action="{{ url_for('usuarios.editar_perfil') }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <label>
+                Nome
+                <input name="nome" value="{{ usuario_atual.nome }}" maxlength="80" required>
+            </label>
+            <label>
+                Bio
+                <textarea name="bio" rows="4" maxlength="300"
+                          placeholder="Conte o que você gosta de ler">{{ usuario_atual.bio }}</textarea>
+            </label>
+            <button type="submit">Salvar perfil</button>
+        </form>
+
+        <a class="link" href="{{ url_for('usuarios.perfil', usuario=usuario_atual.usuario) }}">
+            Voltar ao perfil
+        </a>
+    </section>
+{% endblock %}

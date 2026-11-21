@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#18141d">
+    <title>{% block titulo %}Booklog{% endblock %} | Booklog</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topo">
+        <div class="container barra">
+            <a class="marca" href="{{ url_for('inicio') }}">✦ Booklog</a>
+            {% include '_conta.html' %}
+        </div>
+    </header>
+
+    <main class="container">
+        {% for tipo, mensagem in get_flashed_messages(with_categories=true) %}
+            <p class="aviso {{ tipo }}" role="status">{{ mensagem }}</p>
+        {% endfor %}
+
+        {% block conteudo %}{% endblock %}
+
+        <footer>✦ Booklog · Diário de leitura</footer>
+    </main>
+</body>
+</html>

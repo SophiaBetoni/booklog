@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block titulo %}Criar conta{% endblock %}
+{% block conteudo %}
+    <section class="painel formulario-conta">
+        <p class="etiqueta">Comece sua estante</p>
+        <h1>Criar conta</h1>
+
+        <form method="post" action="{{ url_for('usuarios.cadastro') }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <label>
+                Seu nome
+                <input name="nome" value="{{ dados.nome }}" maxlength="80"
+                       autocomplete="name" required autofocus>
+            </label>
+            <label>
+                Nome de usuário
+                <input name="usuario" value="{{ dados.usuario }}" minlength="3" maxlength="20"
+                       pattern="[a-z0-9_]{3,20}" autocomplete="username" autocapitalize="none"
+                       title="De 3 a 20 letras minúsculas, números ou _" required>
+                <small class="suave">Vai aparecer no endereço do seu perfil: /u/seu_usuario</small>
+            </label>
+            <label>
+                Senha
+                <input type="password" name="senha" minlength="8" maxlength="128"
+                       autocomplete="new-password" required>
+            </label>
+            <label>
+                Confirme a senha
+                <input type="password" name="confirmacao" minlength="8" maxlength="128"
+                       autocomplete="new-password" required>
+            </label>
+            <button type="submit">Criar conta</button>
+        </form>
+
+        <p class="suave">
+            Já tem conta? <a class="link" href="{{ url_for('usuarios.login') }}">Entre aqui</a>.
+        </p>
+    </section>
+{% endblock %}

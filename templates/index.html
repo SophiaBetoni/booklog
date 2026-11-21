@@ -16,24 +16,21 @@
 
 {% macro capa(livro) %}
     <div class="capa-livro">
-    {% set url_capa = livro.capa_url %}
-    {% if not url_capa and livro.capa_id %}
-        {% set url_capa = 'https://covers.openlibrary.org/b/id/' ~ livro.capa_id ~ '-M.jpg?default=false' %}
-    {% endif %}
-
-    <div class="capa-livro">
-        {% if url_capa %}
-            <img src="{{ url_capa }}"
-                 alt="Capa de {{ livro.titulo }}"
-                 width="64" height="96" loading="lazy"
-                 onerror="this.hidden = true; this.nextElementSibling.hidden = false">
+        {% if livro.capa_id %}
+            <img
+                src="https://covers.openlibrary.org/b/id/{{ livro.capa_id }}-M.jpg?default=false"
+                alt="Capa de {{ livro.titulo }}"
+                loading="lazy"
+                width="72"
+                height="108"
+                onerror="this.hidden = true; this.nextElementSibling.hidden = false"
+            >
         {% endif %}
 
-        <span class="capa-letra" aria-hidden="true" {% if url_capa %}hidden{% endif %}>
+        <span class="capa-letra" aria-hidden="true" {% if livro.capa_id %}hidden{% endif %}>
             {{ livro.titulo[:1] | upper }}
         </span>
     </div>
-
 {% endmacro %}
 
 {% macro campos_livro(livro) %}
@@ -106,12 +103,14 @@
             <summary>Editar leitura</summary>
 
             <form method="post" action="{{ url_for('salvar_livro', livro_id=livro.id) }}">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                 {{ campos_livro(livro) }}
                 <button type="submit">Salvar alterações</button>
             </form>
 
             <form method="post" action="{{ url_for('excluir_livro', livro_id=livro.id) }}"
                   onsubmit="return confirm('Remover este livro da estante e das listas?')">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                 <input type="hidden" name="aba" value="{{ aba }}">
                 <button class="perigo" type="submit">Remover da estante</button>
             </form>
@@ -155,6 +154,7 @@
         <div class="container barra">
             <a class="marca" href="{{ url_for('inicio') }}">✦ Booklog</a>
             {{ navegacao('nav-desktop') }}
+            {% include '_conta.html' %}
         </div>
     </header>
 
@@ -256,6 +256,7 @@
                 <summary>+ Nova lista</summary>
 
                 <form method="post" action="{{ url_for('salvar_lista') }}">
+                    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                     {{ campos_lista() }}
                     <button type="submit">Criar lista</button>
                 </form>
@@ -284,6 +285,7 @@
 
                                 <form method="post"
                                       action="{{ url_for('salvar_lista', lista_id=lista.id) }}">
+                                    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                                     {{ campos_lista(lista) }}
                                     <button type="submit">Salvar lista</button>
                                 </form>
@@ -291,6 +293,7 @@
                                 <form method="post"
                                       action="{{ url_for('excluir_lista', lista_id=lista.id) }}"
                                       onsubmit="return confirm('Excluir esta lista?')">
+                                    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                                     <button class="perigo" type="submit">Excluir lista</button>
                                 </form>
                             </details>
