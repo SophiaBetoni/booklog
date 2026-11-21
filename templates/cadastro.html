@@ -1,39 +1,153 @@
-{% extends 'base.html' %}
+
+{% extends "base.html" %}
+
 {% block titulo %}Criar conta{% endblock %}
+
 {% block conteudo %}
-    <section class="painel formulario-conta">
-        <p class="etiqueta">Comece sua estante</p>
-        <h1>Criar conta</h1>
 
-        <form method="post" action="{{ url_for('usuarios.cadastro') }}">
-            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-            <label>
-                Seu nome
-                <input name="nome" value="{{ dados.nome }}" maxlength="80"
-                       autocomplete="name" required autofocus>
-            </label>
-            <label>
-                Nome de usuário
-                <input name="usuario" value="{{ dados.usuario }}" minlength="3" maxlength="20"
-                       pattern="[a-z0-9_]{3,20}" autocomplete="username" autocapitalize="none"
-                       title="De 3 a 20 letras minúsculas, números ou _" required>
-                <small class="suave">Vai aparecer no endereço do seu perfil: /u/seu_usuario</small>
-            </label>
-            <label>
-                Senha
-                <input type="password" name="senha" minlength="8" maxlength="128"
-                       autocomplete="new-password" required>
-            </label>
-            <label>
-                Confirme a senha
-                <input type="password" name="confirmacao" minlength="8" maxlength="128"
-                       autocomplete="new-password" required>
-            </label>
-            <button type="submit">Criar conta</button>
-        </form>
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='login.css') }}">
 
-        <p class="suave">
-            Já tem conta? <a class="link" href="{{ url_for('usuarios.login') }}">Entre aqui</a>.
+<section class="painel formulario-conta login-booklog cadastro-booklog">
+
+    <div class="login-cabecalho">
+
+        <p class="etiqueta">
+            COMECE SUA ESTANTE
         </p>
-    </section>
+
+        <h1>Crie sua conta ♡</h1>
+
+        <p class="login-subtitulo">
+            Toda grande história começa com uma primeira página.
+            Vamos começar a sua?
+        </p>
+
+    </div>
+
+    <!-- CADASTRO TRADICIONAL -->
+    <form method="post"
+          action="{{ url_for('usuarios.cadastro') }}">
+
+        <input type="hidden"
+               name="csrf"
+               value="{{ csrf_token() }}">
+
+        <label>
+            Seu nome
+
+            <input
+                type="text"
+                name="nome"
+                value="{{ dados.nome }}"
+                placeholder="Como podemos te chamar?"
+                autocomplete="name"
+                maxlength="80"
+                required
+                autofocus
+            >
+        </label>
+
+        <label>
+            Nome de usuário
+
+            <input
+                type="text"
+                name="usuario"
+                value="{{ dados.usuario }}"
+                placeholder="Escolha seu nome de usuário"
+                autocomplete="username"
+                minlength="3"
+                maxlength="20"
+                pattern="[a-z0-9_]{3,20}"
+                required
+            >
+
+            <small class="cadastro-ajuda">
+                Seu perfil terá o endereço /u/seu_usuario
+            </small>
+        </label>
+
+        <label>
+            Senha
+
+            <input
+                type="password"
+                name="senha"
+                placeholder="Mínimo de 8 caracteres"
+                autocomplete="new-password"
+                minlength="8"
+                required
+            >
+        </label>
+
+        <label>
+            Confirme sua senha
+
+            <input
+                type="password"
+                name="confirmacao"
+                placeholder="Digite sua senha novamente"
+                autocomplete="new-password"
+                minlength="8"
+                required
+            >
+        </label>
+
+        <button type="submit"
+                class="login-botao-principal">
+            Criar minha conta
+        </button>
+
+    </form>
+
+    <!-- DIVISOR -->
+    <div class="login-divisor">
+        <span>ou continue com</span>
+    </div>
+
+    <!-- CADASTRO COM GOOGLE -->
+    <a href="{{ url_for('google_login.iniciar') }}"
+       class="google-login-btn">
+
+        <svg
+            width="20"
+            height="20"
+            viewBox="0 0 48 48"
+            aria-hidden="true"
+        >
+            <path fill="#EA4335"
+                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+
+            <path fill="#4285F4"
+                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.76 7.18l7.73 6C44.42 38.03 46.98 31.88 46.98 24.55z"/>
+
+            <path fill="#FBBC05"
+                  d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+
+            <path fill="#4285F4"
+                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.76 7.18l7.73 6C44.42 38.03 46.98 31.88 46.98 24.55z"/>
+
+            <path fill="#FBBC05"
+                  d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78z"/>
+
+            <path fill="#34A853"
+                  d="M24 48c6.48 0 11.92-2.13 15.89-5.8l-7.73-6c-2.14 1.44-4.89 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+
+        Continuar com Google
+
+    </a>
+
+    <!-- LOGIN -->
+    <p class="login-cadastro">
+        Já tem uma conta?
+
+        <a href="{{ url_for('usuarios.login') }}">
+            Entre aqui ♡
+        </a>
+    </p>
+
+</section>
+
 {% endblock %}

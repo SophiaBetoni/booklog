@@ -1,27 +1,68 @@
+
 import secrets
 import sqlite3
 import unicodedata
-from frases import sortear_frase
 from pathlib import Path
 
-from flask import Flask, abort, flash, g, redirect, render_template, request, url_for
+from dotenv import load_dotenv
+from flask import (
+    Flask,
+    abort,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from catalogo import atualizar_banco, criar_catalogo
-from usuarios import criar_tabela_usuarios, criar_usuarios, migrar_para_usuarios
+from frases import sortear_frase
+from google_login import (
+    configurar_google,
+    criar_google_login,
+    preparar_banco_google,
+)
+from usuarios import (
+    criar_tabela_usuarios,
+    criar_usuarios,
+    migrar_para_usuarios,
+)
+
+
+# ==========================================
+# CONFIGURAÇÃO DO FLASK
+# ==========================================
 
 app = Flask(__name__)
+
 app.config["MAX_CONTENT_LENGTH"] = 256 * 1024
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
+
+# ==========================================
+# CAMINHOS E VARIÁVEIS DE AMBIENTE
+# ==========================================
+
 PASTA = Path(__file__).resolve().parent
+
+# Carrega as credenciais privadas do .env.
+load_dotenv(PASTA / ".env")
+
 BANCO = PASTA / "estante.db"
 CHAVE_LOCAL = PASTA / ".chave-local"
 
 STATUS = ("Quero ler", "Lendo", "Lido")
 ABAS = ("estante", "resenhas", "listas")
 
-# Mantém a chave entre reinicializações. O arquivo fica fora do Git.
+
+# ==========================================
+# CHAVE DE SESSÃO DO FLASK
+# ==========================================
+
+# Mantém a mesma chave entre reinicializações.
+# O arquivo .chave-local fica fora do Git.
 try:
     with CHAVE_LOCAL.open("xb") as arquivo:
         arquivo.write(secrets.token_bytes(32))
@@ -31,17 +72,35 @@ except FileExistsError:
 app.secret_key = CHAVE_LOCAL.read_bytes()
 
 
+# ==========================================
+# AUTENTICAÇÃO COM GOOGLE
+# ==========================================
+
+# Inicializa o Google OAuth usando as variáveis:
+# GOOGLE_CLIENT_ID
+# GOOGLE_CLIENT_SECRET
+#
+# As credenciais são carregadas do .env.
+configurar_google(app)
+
+
+# ==========================================
+# BANCO DE DADOS
+# ==========================================
+
 def banco():
     if "banco" not in g:
         g.banco = sqlite3.connect(BANCO)
         g.banco.row_factory = sqlite3.Row
         g.banco.execute("PRAGMA foreign_keys = ON")
+
     return g.banco
 
 
 @app.teardown_appcontext
 def fechar_banco(_erro):
     conexao = g.pop("banco", None)
+
     if conexao is not None:
         conexao.close()
 
@@ -53,10 +112,19 @@ def criar_tabelas():
             id INTEGER PRIMARY KEY,
             titulo TEXT NOT NULL,
             autor TEXT NOT NULL,
-            status TEXT NOT NULL CHECK (status IN ('Quero ler', 'Lendo', 'Lido')),
-            nota INTEGER NOT NULL DEFAULT 0 CHECK (nota BETWEEN 0 AND 5),
+            status TEXT NOT NULL
+                CHECK (
+                    status IN (
+                        'Quero ler',
+                        'Lendo',
+                        'Lido'
+                    )
+                ),
+            nota INTEGER NOT NULL DEFAULT 0
+                CHECK (nota BETWEEN 0 AND 5),
             resenha TEXT NOT NULL DEFAULT '',
-            favorito INTEGER NOT NULL DEFAULT 0 CHECK (favorito IN (0, 1))
+            favorito INTEGER NOT NULL DEFAULT 0
+                CHECK (favorito IN (0, 1))
         );
 
         CREATE TABLE IF NOT EXISTS listas (
@@ -65,28 +133,52 @@ def criar_tabelas():
         );
 
         CREATE TABLE IF NOT EXISTS lista_livros (
-            lista_id INTEGER NOT NULL REFERENCES listas(id) ON DELETE CASCADE,
-            livro_id INTEGER NOT NULL REFERENCES livros(id) ON DELETE CASCADE,
+            lista_id INTEGER NOT NULL
+                REFERENCES listas(id)
+                ON DELETE CASCADE,
+
+            livro_id INTEGER NOT NULL
+                REFERENCES livros(id)
+                ON DELETE CASCADE,
+
             PRIMARY KEY (lista_id, livro_id)
         );
         """
     )
 
 
+# ==========================================
+# FUNÇÕES AUXILIARES
+# ==========================================
+
 def normalizar(texto):
-    caracteres = unicodedata.normalize("NFD", texto.casefold())
+    caracteres = unicodedata.normalize(
+        "NFD",
+        texto.casefold()
+    )
+
     return "".join(
-        caractere for caractere in caracteres
+        caractere
+        for caractere in caracteres
         if not unicodedata.combining(caractere)
     )
 
 
 def eu():
+    """Retorna o ID do usuário autenticado."""
     return g.usuario["id"]
 
 
 def voltar(aba="estante"):
-    return redirect(url_for("inicio", aba=aba), code=303)
+    return redirect(
+        url_for("inicio", aba=aba),
+        code=303
+    )
+
+
+# ==========================================
+# PÁGINA INICIAL PÚBLICA
+# ==========================================
 
 @app.get("/boas-vindas")
 def boas_vindas():
@@ -98,31 +190,66 @@ def boas_vindas():
         frase=sortear_frase()
     )
 
+
+# ==========================================
+# ESTANTE PRINCIPAL
+# ==========================================
+
 @app.get("/")
 def inicio():
     aba = request.args.get("aba", "estante")
+
     if aba not in ABAS:
         abort(404)
 
     conexao = banco()
+
     livros = conexao.execute(
-        "SELECT * FROM livros WHERE usuario_id = ? ORDER BY id DESC", (eu(),)
-    ).fetchall()
-    listas = conexao.execute(
-        "SELECT * FROM listas WHERE usuario_id = ? ORDER BY id DESC", (eu(),)
+        """
+        SELECT *
+        FROM livros
+        WHERE usuario_id = ?
+        ORDER BY id DESC
+        """,
+        (eu(),),
     ).fetchall()
 
-    busca = request.args.get("q", "").strip()[:150]
+    listas = conexao.execute(
+        """
+        SELECT *
+        FROM listas
+        WHERE usuario_id = ?
+        ORDER BY id DESC
+        """,
+        (eu(),),
+    ).fetchall()
+
+    busca = request.args.get(
+        "q", ""
+    ).strip()[:150]
+
     termo = normalizar(busca)
+
     livros_filtrados = [
-        livro for livro in livros
-        if termo in normalizar(f"{livro['titulo']} {livro['autor']}")
+        livro
+        for livro in livros
+        if termo in normalizar(
+            f"{livro['titulo']} {livro['autor']}"
+        )
     ]
 
-    membros = {lista["id"]: set() for lista in listas}
-    for item in conexao.execute("SELECT lista_id, livro_id FROM lista_livros"):
+    membros = {
+        lista["id"]: set()
+        for lista in listas
+    }
+
+    for item in conexao.execute(
+        "SELECT lista_id, livro_id FROM lista_livros"
+    ):
         if item["lista_id"] in membros:
-            membros[item["lista_id"]].add(item["livro_id"])
+            membros[item["lista_id"]].add(
+                item["livro_id"]
+            )
 
     return render_template(
         "index.html",
@@ -130,48 +257,91 @@ def inicio():
         busca=busca,
         livros=livros,
         livros_filtrados=livros_filtrados,
-        favoritos=[livro for livro in livros if livro["favorito"]],
-        resenhas=[livro for livro in livros if livro["nota"] or livro["resenha"]],
+        favoritos=[
+            livro
+            for livro in livros
+            if livro["favorito"]
+        ],
+        resenhas=[
+            livro
+            for livro in livros
+            if livro["nota"] or livro["resenha"]
+        ],
         listas=listas,
         membros=membros,
         categorias=STATUS,
     )
 
 
+# ==========================================
+# EDITAR LIVROS E AVALIAÇÕES
+# ==========================================
+
 @app.post("/livros/<int:livro_id>")
 def salvar_livro(livro_id):
-    aba = "resenhas" if request.form.get("aba") == "resenhas" else "estante"
+    aba = (
+        "resenhas"
+        if request.form.get("aba") == "resenhas"
+        else "estante"
+    )
+
     status = request.form.get("status", "")
     nota = request.form.get("nota", type=int)
-    resenha = request.form.get("resenha", "").strip()
-    favorito = int("favorito" in request.form)
+    resenha = request.form.get(
+        "resenha", ""
+    ).strip()
 
-    if status not in STATUS or nota not in range(6) or len(resenha) > 4000:
-        flash("Confira o status, a nota e o tamanho da resenha.", "erro")
+    favorito = int(
+        "favorito" in request.form
+    )
+
+    if (
+        status not in STATUS
+        or nota not in range(6)
+        or len(resenha) > 4000
+    ):
+        flash(
+            "Confira o status, a nota e o tamanho da resenha.",
+            "erro"
+        )
         return voltar(aba)
 
     conexao = banco()
+
     with conexao:
-        # Reserva a escrita antes de conferir o limite de favoritos.
+        # Reserva a escrita antes de conferir
+        # o limite de favoritos.
         conexao.execute("BEGIN IMMEDIATE")
 
         existe = conexao.execute(
-            "SELECT 1 FROM livros WHERE id = ? AND usuario_id = ?",
+            """
+            SELECT 1
+            FROM livros
+            WHERE id = ?
+              AND usuario_id = ?
+            """,
             (livro_id, eu()),
         ).fetchone()
+
         if existe is None:
             abort(404)
 
         if favorito:
             outros_favoritos = conexao.execute(
-                "SELECT COUNT(*) FROM livros "
-                "WHERE favorito = 1 AND id != ? AND usuario_id = ?",
+                """
+                SELECT COUNT(*)
+                FROM livros
+                WHERE favorito = 1
+                  AND id != ?
+                  AND usuario_id = ?
+                """,
                 (livro_id, eu()),
             ).fetchone()[0]
 
             if outros_favoritos >= 3:
                 flash(
-                    "Seu Top 3 está cheio. Desmarque um favorito para incluir outro.",
+                    "Seu Top 3 está cheio. "
+                    "Desmarque um favorito para incluir outro.",
                     "erro",
                 )
                 return voltar(aba)
@@ -179,93 +349,213 @@ def salvar_livro(livro_id):
         conexao.execute(
             """
             UPDATE livros
-            SET status = ?, nota = ?, resenha = ?, favorito = ?
-            WHERE id = ? AND usuario_id = ?
+            SET status = ?,
+                nota = ?,
+                resenha = ?,
+                favorito = ?
+            WHERE id = ?
+              AND usuario_id = ?
             """,
-            (status, nota, resenha, favorito, livro_id, eu()),
+            (
+                status,
+                nota,
+                resenha,
+                favorito,
+                livro_id,
+                eu(),
+            ),
         )
 
     flash("Livro atualizado!", "sucesso")
+
     return voltar(aba)
 
+
+# ==========================================
+# EXCLUIR LIVRO
+# ==========================================
 
 @app.post("/livros/<int:livro_id>/excluir")
 def excluir_livro(livro_id):
     conexao = banco()
+
     with conexao:
         conexao.execute(
-            "DELETE FROM livros WHERE id = ? AND usuario_id = ?", (livro_id, eu())
+            """
+            DELETE FROM livros
+            WHERE id = ?
+              AND usuario_id = ?
+            """,
+            (livro_id, eu()),
         )
 
-    flash("Livro removido da estante.", "sucesso")
-    aba = "resenhas" if request.form.get("aba") == "resenhas" else "estante"
+    flash(
+        "Livro removido da estante.",
+        "sucesso"
+    )
+
+    aba = (
+        "resenhas"
+        if request.form.get("aba") == "resenhas"
+        else "estante"
+    )
+
     return voltar(aba)
 
+
+# ==========================================
+# CRIAR E EDITAR LISTAS
+# ==========================================
 
 @app.post("/listas")
 @app.post("/listas/<int:lista_id>")
 def salvar_lista(lista_id=None):
-    nome = request.form.get("nome", "").strip()
+    nome = request.form.get(
+        "nome", ""
+    ).strip()
+
     if not 1 <= len(nome) <= 100:
-        flash("Digite um nome de até 100 caracteres.", "erro")
+        flash(
+            "Digite um nome de até 100 caracteres.",
+            "erro"
+        )
         return voltar("listas")
 
-    livros_selecionados = set(request.form.getlist("livros", type=int))
+    livros_selecionados = set(
+        request.form.getlist(
+            "livros",
+            type=int
+        )
+    )
+
     conexao = banco()
 
     with conexao:
         if lista_id is None:
             resultado = conexao.execute(
-                "INSERT INTO listas (nome, usuario_id) VALUES (?, ?)",
+                """
+                INSERT INTO listas
+                    (nome, usuario_id)
+                VALUES (?, ?)
+                """,
                 (nome, eu()),
             )
+
             lista_id = resultado.lastrowid
+
         else:
             resultado = conexao.execute(
-                "UPDATE listas SET nome = ? WHERE id = ? AND usuario_id = ?",
+                """
+                UPDATE listas
+                SET nome = ?
+                WHERE id = ?
+                  AND usuario_id = ?
+                """,
                 (nome, lista_id, eu()),
             )
+
             if resultado.rowcount == 0:
                 abort(404)
 
             conexao.execute(
-                "DELETE FROM lista_livros WHERE lista_id = ?",
+                """
+                DELETE FROM lista_livros
+                WHERE lista_id = ?
+                """,
                 (lista_id,),
             )
 
         conexao.executemany(
             """
-            INSERT INTO lista_livros (lista_id, livro_id)
-            SELECT ?, id FROM livros WHERE id = ? AND usuario_id = ?
+            INSERT INTO lista_livros
+                (lista_id, livro_id)
+            SELECT ?, id
+            FROM livros
+            WHERE id = ?
+              AND usuario_id = ?
             """,
-            ((lista_id, livro_id, eu()) for livro_id in livros_selecionados),
+            (
+                (lista_id, livro_id, eu())
+                for livro_id in livros_selecionados
+            ),
         )
 
     flash("Lista salva!", "sucesso")
+
     return voltar("listas")
 
+
+# ==========================================
+# EXCLUIR LISTA
+# ==========================================
 
 @app.post("/listas/<int:lista_id>/excluir")
 def excluir_lista(lista_id):
     conexao = banco()
+
     with conexao:
         conexao.execute(
-            "DELETE FROM listas WHERE id = ? AND usuario_id = ?", (lista_id, eu())
+            """
+            DELETE FROM listas
+            WHERE id = ?
+              AND usuario_id = ?
+            """,
+            (lista_id, eu()),
         )
 
-    flash("Lista excluída. Os livros continuam na estante.", "sucesso")
+    flash(
+        "Lista excluída. "
+        "Os livros continuam na estante.",
+        "sucesso"
+    )
+
     return voltar("listas")
 
 
-app.register_blueprint(criar_usuarios(banco))
-app.register_blueprint(criar_catalogo(banco))
+# ==========================================
+# REGISTRO DOS BLUEPRINTS
+# ==========================================
+
+# Cadastro, login tradicional e perfis.
+app.register_blueprint(
+    criar_usuarios(banco)
+)
+
+# Pesquisa pela Google Books e Open Library.
+app.register_blueprint(
+    criar_catalogo(banco)
+)
+
+# Login e cadastro usando Google OAuth.
+app.register_blueprint(
+    criar_google_login(banco)
+)
+
+
+# ==========================================
+# INICIALIZAÇÃO DO BANCO DE DADOS
+# ==========================================
 
 with app.app_context():
+    # Contas tradicionais.
     criar_tabela_usuarios(banco())
+
+    # Livros e listas.
     criar_tabelas()
+
+    # Campos usados pelo catálogo.
     atualizar_banco(banco())
+
+    # Associação dos dados aos usuários.
     migrar_para_usuarios(banco())
 
+    # Identificador das contas Google.
+    preparar_banco_google(banco())
+
+
+# ==========================================
+# EXECUÇÃO LOCAL
+# ==========================================
 
 if __name__ == "__main__":
     app.run(port=5001)
