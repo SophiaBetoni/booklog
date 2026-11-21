@@ -1,6 +1,7 @@
 import secrets
 import sqlite3
 import unicodedata
+from frases import sortear_frase
 from pathlib import Path
 
 from flask import Flask, abort, flash, g, redirect, render_template, request, url_for
@@ -87,6 +88,15 @@ def eu():
 def voltar(aba="estante"):
     return redirect(url_for("inicio", aba=aba), code=303)
 
+@app.get("/boas-vindas")
+def boas_vindas():
+    if g.usuario is not None:
+        return redirect(url_for("inicio"))
+
+    return render_template(
+        "inicio.html",
+        frase=sortear_frase()
+    )
 
 @app.get("/")
 def inicio():

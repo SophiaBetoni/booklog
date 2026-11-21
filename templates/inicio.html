@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Booklog | Sua vida entre livros</title>
+
+    <meta name="description"
+          content="Organize suas leituras, avalie livros e crie sua estante pessoal no Booklog.">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='inicio.css') }}">
+</head>
+
+<body>
+
+    <!-- MENU SUPERIOR -->
+    <header class="navbar">
+
+        <a href="{{ url_for('boas_vindas') }}" class="logo">
+            ✦ booklog.
+        </a>
+
+        <nav class="menu">
+            <a href="{{ url_for('usuarios.login') }}"
+               class="link-entrar">
+                Entrar
+            </a>
+
+            <a href="{{ url_for('usuarios.cadastro') }}"
+               class="botao-cadastro">
+                Criar conta
+            </a>
+        </nav>
+
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="hero">
+
+        <div class="conteudo">
+
+            <p class="etiqueta">
+                SEU UNIVERSO LITERÁRIO
+            </p>
+
+            <h1>
+                Cada livro, uma história.
+                <span>Cada leitura, uma memória.</span>
+            </h1>
+
+            <p class="descricao">
+                Um espaço para organizar suas leituras,
+                descobrir novas histórias, avaliar seus livros
+                favoritos e construir sua própria estante literária.
+            </p>
+
+            <!-- BOTÕES -->
+            <div class="acoes">
+
+                <a href="{{ url_for('usuarios.cadastro') }}"
+                   class="botao-principal">
+                    Começar minha estante
+                </a>
+
+                <a href="{{ url_for('usuarios.login') }}"
+                   class="botao-secundario">
+                    Já tenho uma conta
+                </a>
+
+            </div>
+
+            <!-- FRASE LITERÁRIA -->
+            <section class="citacao">
+
+                <span class="aspas" aria-hidden="true">“</span>
+
+                <blockquote>
+                    {{ frase.texto }}
+                </blockquote>
+
+                <p class="autor">
+                    {{ frase.autor }}
+
+                    {% if frase.livro %}
+                        <span>— {{ frase.livro }}</span>
+                    {% endif %}
+                </p>
+
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- RODAPÉ -->
+    <footer>
+        <p>
+            ✦ booklog. — Um lugar para todas as suas histórias.
+        </p>
+    </footer>
+
+</body>
+</html>
