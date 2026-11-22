@@ -32,6 +32,9 @@ Inspirado na ideia de um diário literário, o Booklog permite acompanhar suas l
 | CSS3 | Estilização e responsividade |
 | Jinja2 | Templates dinâmicos |
 | Google Books API | Pesquisa de livros e capas |
+| Google OAuth (Authlib) | Login com conta Google |
+| Azure App Service | Hospedagem da aplicação |
+| GitHub Actions | Deploy automático |
 | Open Library API | Fonte alternativa para o catálogo |
 | Git e GitHub | Versionamento |
 
@@ -64,15 +67,17 @@ No Windows (PowerShell):
 pip install -r requirements.txt
 ```
 
-**5. Configure a Google Books API**
+**5. Configure as chaves do Google**
 
 Crie um arquivo `.env` na pasta principal:
 
 ```dotenv
 GOOGLE_BOOKS_KEY=SUA_CHAVE_AQUI
+GOOGLE_CLIENT_ID=SEU_CLIENT_ID.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=SEU_CLIENT_SECRET
 ```
 
-A chave deve ser obtida no Google Cloud Console. Não compartilhe esse arquivo nem publique sua chave no GitHub.
+As chaves são obtidas no Google Cloud Console. Para o login com Google funcionar localmente, cadastre `http://127.0.0.1:5001/login/google/callback` nas **URIs de redirecionamento autorizados** do cliente OAuth. Não compartilhe esse arquivo nem publique suas chaves no GitHub.
 
 **6. Execute o Booklog**
 
@@ -86,6 +91,48 @@ python app.py
 http://127.0.0.1:5001
 ```
 
+## ☁️ Deploy na Azure
+
+O Booklog está publicado no **Azure App Service** (Linux, Python 3.12), usando a assinatura **Azure for Students**.
+
+🔗 **Acesse:** https://booklog-agdccqfghbbzgmg9.brazilsouth-01.azurewebsites.net
+
+### Como o deploy funciona
+
+O deploy é automático pelo **GitHub Actions** (`.github/workflows/deploy-booklog-mvp_booklog.yml`):
+
+1. Um `git push` no branch `deploy/booklog-mvp` inicia o workflow.
+2. O job **build** instala as dependências do `requirements.txt` para checar se está tudo certo.
+3. O job **deploy** faz login na Azure e publica o código no Web App `booklog`.
+4. A Azure (Oryx) instala as dependências e inicia o app com o **Gunicorn**.
+
+O workflow também pode ser executado manualmente pela aba **Actions** do GitHub (`workflow_dispatch`).
+
+### Variáveis de ambiente na Azure
+
+O `.env` não vai para o GitHub, então as chaves ficam em **App Service → Configurações → Variáveis de ambiente**:
+
+| Variável | Para que serve |
+|---|---|
+| `GOOGLE_BOOKS_KEY` | Pesquisa na Google Books API |
+| `GOOGLE_CLIENT_ID` | ID do cliente OAuth do Google |
+| `GOOGLE_CLIENT_SECRET` | Chave secreta do cliente OAuth |
+
+Depois de alterar uma variável, reinicie o app na Azure.
+
+### Login com Google em produção
+
+No **Google Cloud Console → APIs e serviços → Credenciais**, o cliente OAuth (tipo **Aplicativo da Web**) precisa ter:
+
+- **Origens JavaScript autorizadas:**
+  `https://booklog-agdccqfghbbzgmg9.brazilsouth-01.azurewebsites.net`
+- **URIs de redirecionamento autorizados:**
+  `https://booklog-agdccqfghbbzgmg9.brazilsouth-01.azurewebsites.net/login/google/callback`
+
+O app usa o `ProxyFix` do Werkzeug para reconhecer o HTTPS repassado pelo proxy da Azure. Assim, o endereço de retorno é gerado com `https://`.
+
+> ⚠️ **Erro `redirect_uri_mismatch`?** O endereço cadastrado no Google precisa ser **idêntico** ao enviado pelo app, sem `/` no final e com `https`. **Copie e cole** o endereço em vez de digitar, porque uma única letra trocada já causa o erro. Para ver o endereço que o app envia, clique em "detalhes do erro" na tela do Google. Mudanças no Google Cloud podem levar alguns minutos para valer.
+
 ## 📁 Estrutura do projeto
 
 ```text
@@ -94,7 +141,10 @@ Book_log/
 ├── catalogo.py
 ├── usuarios.py
 ├── frases.py
+├── google_login.py
 ├── requirements.txt
+├── .github/workflows/
+│   └── deploy-booklog-mvp_booklog.yml
 ├── templates/
 │   ├── inicio.html
 │   ├── index.html
