@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Buscar livros | Entre Páginas</title>
+    <title>Buscar livros | Booklog</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
@@ -12,7 +12,7 @@
 <body>
     <header class="topo">
         <div class="container barra">
-            <a class="marca" href="{{ url_for('inicio') }}">✦ Entre Páginas</a>
+            <a class="marca" href="{{ url_for('inicio') }}">✦ Booklog</a>
             <a class="link" href="{{ url_for('inicio') }}">Minha estante</a>
             {% include '_conta.html' %}
         </div>
