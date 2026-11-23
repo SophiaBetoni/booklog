@@ -73,6 +73,18 @@
                                 </div>
                             </div>
 
+                            {% if livro.sinopse %}
+                                <details class="sinopse">
+                                    <summary>
+                                        <span class="sinopse-resumo">{{ livro.sinopse | truncate(220, true, "…", 0) }}</span>
+                                        {% if livro.sinopse | length > 220 %}<span class="sinopse-mais">Ler mais</span>{% endif %}
+                                    </summary>
+                                    <p>{{ livro.sinopse }}</p>
+                                </details>
+                            {% else %}
+                                <p class="suave sinopse-vazia">Sinopse não disponível.</p>
+                            {% endif %}
+
                             <form class="form-catalogo" method="post"
                                   action="{{ url_for('catalogo.adicionar') }}">
                                 <input type="hidden" name="csrf" value="{{ csrf_token() }}">

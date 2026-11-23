@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import re
@@ -62,13 +63,22 @@ def preparar(dados, ano):
     }
 
 
+def limpar_sinopse(texto, limite=1500):
+    """Tira as tags HTML que o Google às vezes manda e encurta textos enormes."""
+    texto = re.sub(r"<[^>]+>", " ", texto or "")
+    texto = re.sub(r"\s+", " ", html.unescape(texto)).strip()
+    if len(texto) > limite:
+        texto = texto[:limite].rsplit(" ", 1)[0] + "…"
+    return texto or None
+
+
 def buscar_google(termo, campo):
     filtro = "intitle" if campo == "title" else "inauthor"
     parametros = {
         "q": f"{filtro}:{termo}",
         "printType": "books",
         "maxResults": 20,
-        "fields": "items(id,volumeInfo(title,subtitle,authors,publishedDate,imageLinks))",
+        "fields": "items(id,volumeInfo(title,subtitle,authors,publishedDate,imageLinks,description))",
     }
     chave = chave_google()
     if chave:
@@ -103,17 +113,18 @@ def buscar_google(termo, campo):
             )
         ano = info.get("publishedDate", "")[:4]
 
-        livros.append(
-            preparar(
-                {
-                    "catalogo_id": f"gb:{volume_id}",
-                    "titulo": titulo[:150],
-                    "autor": autor[:120],
-                    "capa_url": capa,
-                },
-                ano if ano.isdigit() else None,
-            )
+        livro = preparar(
+            {
+                "catalogo_id": f"gb:{volume_id}",
+                "titulo": titulo[:150],
+                "autor": autor[:120],
+                "capa_url": capa,
+            },
+            ano if ano.isdigit() else None,
         )
+        # A sinopse só aparece na busca: fica fora dos dados salvos na estante.
+        livro["sinopse"] = limpar_sinopse(info.get("description"))
+        livros.append(livro)
     return livros
 
 

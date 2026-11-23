@@ -495,3 +495,44 @@ footer {
         text-align: center;
     }
 }
+/* Sinopse dos livros na busca */
+.sinopse {
+    margin: 0.9rem 0 0.4rem;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--suave);
+}
+
+.sinopse summary {
+    cursor: pointer;
+    list-style: none;
+    padding-block: 0;
+    color: var(--suave);
+    font-weight: 400;
+}
+
+.sinopse summary::-webkit-details-marker {
+    display: none;
+}
+
+.sinopse-mais {
+    display: inline-block;
+    margin-left: 0.35rem;
+    color: var(--rosa);
+    font-weight: 600;
+}
+
+.sinopse[open] summary {
+    display: none;
+}
+
+.sinopse p {
+    margin: 0;
+    white-space: pre-line;
+}
+
+.sinopse-vazia {
+    margin: 0.9rem 0 0.4rem;
+    font-size: 0.9rem;
+    font-style: italic;
+}
