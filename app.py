@@ -1,8 +1,8 @@
-
 import secrets
 import sqlite3
 import unicodedata
 from pathlib import Path
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from dotenv import load_dotenv
 from flask import (
@@ -35,6 +35,11 @@ from usuarios import (
 # ==========================================
 
 app = Flask(__name__)
+# Reconhece o HTTPS encaminhado pelo proxy do Azure.
+app.wsgi_app = ProxyFix(
+    app.wsgi_app,
+    x_proto=1,
+)
 
 app.config["MAX_CONTENT_LENGTH"] = 256 * 1024
 app.config["SESSION_COOKIE_HTTPONLY"] = True
